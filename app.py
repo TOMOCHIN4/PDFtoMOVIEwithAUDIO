@@ -853,4 +853,5 @@ with gr.Blocks(
 
 
 if __name__ == "__main__":
-    demo.launch(ssr_mode=False)
+    # api_open=False でAPIドキュメント生成を無効化し、schema生成エラーを回避
+    demo.launch(ssr_mode=False, show_api=False)
