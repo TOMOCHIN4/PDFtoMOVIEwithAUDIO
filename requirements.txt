@@ -4,6 +4,8 @@ PyMuPDF>=1.24.0
 pdf2image>=1.17.0
 Pillow>=10.0.0
 pydub>=0.25.1
-moviepy==1.0.3
+moviepy>=1.0.3
 numpy>=1.24.0
 huggingface_hub>=0.20.0
+imageio>=2.9.0
+imageio-ffmpeg>=0.4.7
