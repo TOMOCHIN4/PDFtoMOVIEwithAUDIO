@@ -6,6 +6,27 @@
 
 ## 2025-12-27
 
+### 🚨 ランタイムエラー発生 - Gradio SSR問題
+- **状態**: アプリ起動成功、しかしUI表示でエラー
+- **エラー内容**:
+  ```
+  TypeError: argument of type 'bool' is not iterable
+  ```
+- **発生箇所**: `gradio_client/utils.py` → `json_schema_to_python_type`
+- **原因（推定）**:
+  - Gradio 5.x の SSR（Server Side Rendering）が有効
+  - gradio_clientとのスキーマ互換性問題
+- **対策案**:
+  1. `demo.launch(ssr=False)` でSSR無効化
+  2. Gradioバージョン調整
+  3. コンポーネント設定見直し
+- **担当**: 調査中
+
+### ✅ PR#5 マージ完了 - moviepy 2.x + 環境シークレット対応
+- **作業内容**: ビルドエラー修正をmainにマージ
+- **結果**: ビルド成功、起動成功、しかしランタイムエラー発生
+- **担当**: ユーザー
+
 ### 📦 ビルドエラー修正（試行3）- moviepy 2.x対応 + 環境シークレット対応
 - **作業内容**:
   - moviepy 2.xに対応（`moviepy.editor`が廃止されたため）
@@ -85,10 +106,10 @@
 
 ## 現在の状況
 
-### 🔄 ビルド確認中
-- **状態**: moviepy 2.x対応 + 環境シークレット対応済み
-- **対応済み**: gradio 5.9.1、moviepy 2.x対応
-- **次のステップ**: ビルド成功後、動作テスト
+### 🚨 ランタイムエラー対応中
+- **状態**: ビルド成功、起動成功、しかしGradio SSRエラー発生
+- **対応済み**: gradio 5.9.1、moviepy 2.x対応、環境シークレット対応
+- **次のステップ**: SSRエラー解消 → UI表示確認 → 動作テスト
 
 ---
 

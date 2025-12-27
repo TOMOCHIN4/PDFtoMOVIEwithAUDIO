@@ -4,38 +4,60 @@
 
 | 項目 | 状態 |
 |------|------|
-| **全体進捗** | 🟡 ビルド確認中 |
-| **ビルド** | 🔄 websockets競合解消済み、結果待ち |
+| **全体進捗** | 🔴 ランタイムエラーあり |
+| **ビルド** | ✅ 成功（起動確認） |
+| **ランタイム** | ❌ Gradio SSR/API エラー |
 | **動作テスト** | ⏸️ 未実施 |
 | **コア機能** | 📝 実装済み（未検証） |
-| **UI** | 📝 実装済み（未検証） |
+| **UI** | ❌ SSRエラーで表示不可 |
 | **API連携** | ❓ 未確認 |
 | **GitHub連携** | ✅ 設定済み |
 | **ドキュメント** | ✅ 整備済み |
 
 ---
 
+## 🚨 現在の課題: Gradio SSR エラー
+
+### エラー概要
+```
+TypeError: argument of type 'bool' is not iterable
+```
+
+### 発生箇所
+- `gradio_client/utils.py` の `json_schema_to_python_type` 関数
+- Gradio API情報取得時にエラー
+
+### 原因（推定）
+- Gradio 5.x の SSR（Server Side Rendering）モードが有効
+- `gradio_client` とのスキーマ互換性問題
+
+### 対策案
+1. **SSRを無効化**: `demo.launch(ssr=False)` に変更
+2. **Gradioバージョン調整**: 5.9.1から別バージョンへ
+3. **コンポーネント設定見直し**: 問題のあるコンポーネントを特定
+
+---
+
 ## 直近の対応
 
-### ✅ 解消済み: websockets競合
-- **問題**: `gradio-client 1.3.0` (websockets<13.0) と `google-genai` (websockets>=13.0) が競合
-- **対策**: gradio 4.44.1 → 5.9.1 にアップグレード
-- **状態**: PR#2 マージ完了、ビルド結果待ち
+### ✅ 解消済み: ビルドエラー
+- websockets競合 → gradio 5.9.1 で解消
+- moviepy 2.x対応 → インポート修正で解消
+- 環境シークレット対応 → 追加済み
 
-### ✅ 設定済み: GitHub → HF Space 連携
-- GitHub Actions でmainプッシュ時に自動同期
-- `.github/workflows/sync-to-hf.yml` 設定済み
-- `HF_TOKEN` シークレット設定済み
+### ❌ 未解消: ランタイムエラー
+- アプリ起動は成功（`Running on local URL: http://0.0.0.0:7860`）
+- しかしGradio APIエンドポイントでエラー発生
+- UI表示が正常に行われない
 
 ---
 
 ## 次のステップ
 
-### ⏳ ビルド成功後
-- [ ] HF Spacesでの起動確認
+### 🚨 緊急対応
+- [ ] SSR無効化を試行 (`ssr=False`)
+- [ ] エラー解消後、UI表示確認
 - [ ] 基本動作テスト
-- [ ] 各機能の動作確認
-- [ ] エラーハンドリングの確認
 
 ---
 
@@ -87,13 +109,13 @@ PDFtoMOVIEwithAUDIO/
 ### Python パッケージ
 | パッケージ | バージョン | 用途 | 状態 |
 |-----------|-----------|------|------|
-| gradio | 5.9.1 | UI | 🔄 確認中 |
-| google-genai | >=1.0.0 | AI API | 🔄 確認中 |
+| gradio | 5.9.1 | UI | ❌ SSRエラー |
+| google-genai | >=1.0.0 | AI API | ❓ |
 | PyMuPDF | >=1.24.0 | PDF処理 | ❓ |
 | pdf2image | >=1.17.0 | PDF→画像 | ❓ |
 | Pillow | >=10.0.0 | 画像処理 | ❓ |
 | pydub | >=0.25.1 | 音声処理 | ❓ |
-| moviepy | >=1.0.3 | 動画生成 | ❓ |
+| moviepy | 2.x | 動画生成 | ✅ インポート修正済み |
 | numpy | >=1.24.0 | 数値計算 | ❓ |
 | huggingface_hub | >=0.20.0 | HF連携 | ❓ |
 
@@ -107,7 +129,10 @@ PDFtoMOVIEwithAUDIO/
 
 ## 既知の課題
 
-### 優先度: 高（ビルド成功後）
+### 優先度: 緊急 🚨
+- [ ] **Gradio SSRエラー解消** - UI表示不可
+
+### 優先度: 高（エラー解消後）
 - [ ] 基本動作テストの実施
 - [ ] API連携の動作確認
 - [ ] Gradio 5.x でのUI互換性確認
@@ -134,6 +159,7 @@ PDFtoMOVIEwithAUDIO/
 | ❌ | エラー・問題あり |
 | ⏸️ | 保留・待機中 |
 | 🟡 | 注意・確認必要 |
+| 🔴 | 重大な問題あり |
 
 ---
 
