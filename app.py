@@ -365,8 +365,7 @@ def create_page_video(image, audio_path, duration):
         fps=OUTPUT_FPS,
         codec='libx264',
         audio_codec='aac',
-        verbose=False,
-        logger=None
+        logger="bar"
     )
 
     img_clip.close()
@@ -386,8 +385,7 @@ def merge_videos(video_paths, output_path):
         fps=OUTPUT_FPS,
         codec='libx264',
         audio_codec='aac',
-        verbose=False,
-        logger=None
+        logger="bar"
     )
 
     for clip in clips:
