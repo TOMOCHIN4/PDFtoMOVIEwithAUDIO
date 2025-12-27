@@ -9,7 +9,7 @@
 **PDFtoMOVIEwithAUDIO** は、PDFをAIナレーション付き動画に変換するHugging Face Spaces Gradioアプリです。
 
 ### 主要技術
-- **UI**: Gradio 4.44.1
+- **UI**: Gradio 5.9.1
 - **AI**: Google Gemini API（スクリプト生成・TTS）
 - **PDF処理**: PyMuPDF, pdf2image
 - **動画生成**: moviepy, ffmpeg
@@ -21,6 +21,48 @@
 
 ---
 
+## Claudeができること
+
+### Git操作
+- ファイルの作成・編集・削除
+- コミットの作成
+- `claude/` プレフィックスのブランチへのプッシュ
+- ブランチの作成・切り替え
+- git log, status, diff の確認
+
+### できないこと（ユーザー操作が必要）
+- `main` ブランチへの直接プッシュ（権限なし）
+- PRのマージ（GitHub UIで実行）
+- GitHub Secretsの設定
+
+### プルリクエスト作成
+1. 変更を `claude/` プレフィックスのブランチにプッシュ
+2. PR作成URLを提供
+3. ユーザーがGitHub UIでPRを作成・マージ
+
+### 推奨ワークフロー
+```
+1. Claude: 変更をコミット
+2. Claude: claude/xxx ブランチにプッシュ
+3. Claude: PR作成URLを提供
+4. ユーザー: GitHub UIでPRを作成・マージ
+5. GitHub Actions: 自動でHF Spaceに同期
+```
+
+---
+
+## GitHub ↔ HF Space 連携
+
+### 設定済み
+- `.github/workflows/sync-to-hf.yml` - 自動同期ワークフロー
+- `HF_TOKEN` シークレット設定済み
+
+### 動作
+- mainブランチへのプッシュ時、自動でHF Spaceに同期
+- 手動実行も可能（GitHub Actions → Run workflow）
+
+---
+
 ## ファイル構成と役割
 
 | ファイル | 役割 |
@@ -29,6 +71,7 @@
 | `requirements.txt` | Python依存関係 |
 | `packages.txt` | システム依存関係（poppler, ffmpeg） |
 | `README.md` | HF Spaces設定（YAML frontmatter） |
+| `.github/workflows/sync-to-hf.yml` | GitHub Actions |
 | `PLAN.md` | プロジェクト計画・ロードマップ |
 | `STATUS.md` | 現在の開発状態 |
 | `LOG.md` | 開発履歴（時系列） |
@@ -68,6 +111,7 @@
 1. **PROGRAM_STYLES変更時**: 話者数（`speakers`）と`voice_config`の整合性を確認
 2. **音声パラメータ変更時**: `AUDIO_SPEED`, `SILENCE_BEFORE/AFTER`の影響範囲を確認
 3. **依存関係追加時**: `requirements.txt`と`packages.txt`の両方を確認
+4. **gradioバージョン変更時**: `README.md`の`sdk_version`も更新
 
 ### ドキュメント更新ルール
 - 機能追加・変更時 → `LOG.md`にエントリ追加
@@ -153,6 +197,12 @@ Output: MP4 + HF URL
 1. `print()`文でログ出力（HF Spacesのログで確認可能）
 2. 各関数の戻り値を確認
 3. 一時ファイルの存在確認
+
+### ビルドエラー対応
+1. HF Spacesのビルドログを確認
+2. 依存関係の競合をチェック（特にwebsockets）
+3. `requirements.txt`を修正
+4. 必要に応じて`README.md`の`sdk_version`を更新
 
 ---
 
