@@ -6,6 +6,18 @@
 
 ## 2025-12-27
 
+### 📦 ビルドエラー修正（試行3）- moviepy 2.x対応 + 環境シークレット対応
+- **作業内容**:
+  - moviepy 2.xに対応（`moviepy.editor`が廃止されたため）
+    - `from moviepy.editor import ...` → `from moviepy import ...`
+  - HF Spacesの環境シークレット対応を追加
+    - `GEMINI_API_KEY`: Gemini APIキー
+    - `HF_TOKEN`: Hugging Faceトークン
+    - `HF_REPO_ID`: アップロード先リポジトリ（デフォルト: leave-everything/PDFtoMOVIEwithAUDIO）
+  - UIで環境変数設定済みの場合は表示
+- **原因**: moviepy 2.xでは`moviepy.editor`モジュールが削除された
+- **担当**: Claude
+
 ### 📦 ビルドエラー修正（試行2）- websockets競合解消
 - **作業内容**: gradio/google-genai間のwebsockets競合を解消
   - `README.md`: gradio 4.44.1 → 5.9.1 に更新
