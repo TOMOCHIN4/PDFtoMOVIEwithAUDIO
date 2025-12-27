@@ -376,21 +376,50 @@ def create_page_video(image, audio_path, duration):
 
 
 def merge_videos(video_paths, output_path):
-    """動画を結合"""
-    clips = [VideoFileClip(path) for path in video_paths]
-    final = concatenate_videoclips(clips, method="compose")
+    """動画を結合（ffmpeg直接結合で高速化）"""
+    import subprocess
 
-    final.write_videofile(
-        output_path,
-        fps=OUTPUT_FPS,
-        codec='libx264',
-        audio_codec='aac',
-        logger="bar"
-    )
+    # ファイルリストを作成
+    list_path = tempfile.mktemp(suffix='.txt')
+    with open(list_path, 'w') as f:
+        for path in video_paths:
+            # ffmpeg concat demuxer形式
+            f.write(f"file '{path}'\n")
 
-    for clip in clips:
-        clip.close()
-    final.close()
+    # ffmpegで再エンコードなしに結合（超高速）
+    cmd = [
+        'ffmpeg', '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', list_path,
+        '-c', 'copy',  # 再エンコードなし
+        output_path
+    ]
+
+    print(f"[merge_videos] ffmpeg直接結合開始: {len(video_paths)}本の動画")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"[merge_videos] ffmpeg警告/エラー: {result.stderr}")
+        # フォールバック: moviepyで結合
+        print("[merge_videos] フォールバック: moviepyで結合")
+        clips = [VideoFileClip(path) for path in video_paths]
+        final = concatenate_videoclips(clips, method="compose")
+        final.write_videofile(
+            output_path,
+            fps=OUTPUT_FPS,
+            codec='libx264',
+            audio_codec='aac',
+            logger="bar"
+        )
+        for clip in clips:
+            clip.close()
+        final.close()
+    else:
+        print(f"[merge_videos] ffmpeg結合完了")
+
+    # クリーンアップ
+    os.remove(list_path)
 
 
 def upload_to_hf_dataset(video_path, hf_token, repo_id):
