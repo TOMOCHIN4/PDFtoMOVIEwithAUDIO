@@ -15,6 +15,10 @@
 - **動画生成**: moviepy, ffmpeg
 - **ストレージ**: Hugging Face Hub
 
+### Hugging Face リソース
+- **HF Space**: `leave-everything/PDFtoMOVIEwithAUDIO`
+- **HF Dataset**: `leave-everything/PDFtoMOVIEwithAUDIO`
+
 ---
 
 ## ファイル構成と役割

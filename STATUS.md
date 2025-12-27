@@ -145,6 +145,15 @@ PDFtoMOVIEwithAUDIO/
 
 ---
 
+## Hugging Face リソース
+
+| リソース | ID |
+|---------|-----|
+| **HF Space** | `leave-everything/PDFtoMOVIEwithAUDIO` |
+| **HF Dataset** | `leave-everything/PDFtoMOVIEwithAUDIO` |
+
+---
+
 ## 必要なAPI
 
 | API | 必須 | 用途 |
