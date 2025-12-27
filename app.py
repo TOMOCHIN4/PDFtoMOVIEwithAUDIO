@@ -15,9 +15,7 @@ from pdf2image import convert_from_path
 from PIL import Image
 import numpy as np
 from pydub import AudioSegment
-from moviepy.editor import (
-    ImageClip, AudioFileClip, concatenate_videoclips, CompositeVideoClip
-)
+from moviepy import ImageClip, AudioFileClip, concatenate_videoclips, VideoFileClip
 import fitz  # PyMuPDF
 from huggingface_hub import HfApi, upload_file
 import datetime
@@ -35,6 +33,11 @@ SILENCE_BEFORE = 1000  # 前の無音（ミリ秒）
 SILENCE_AFTER = 500    # 後の無音（ミリ秒）
 OUTPUT_FPS = 24
 OUTPUT_RESOLUTION = (1920, 1080)
+
+# 環境変数からAPIキーを取得（HF Spacesのシークレット対応）
+ENV_GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+ENV_HF_TOKEN = os.environ.get("HF_TOKEN", "")
+ENV_HF_REPO_ID = os.environ.get("HF_REPO_ID", "leave-everything/PDFtoMOVIEwithAUDIO")
 
 # 番組スタイルプリセット
 PROGRAM_STYLES = {
@@ -507,8 +510,6 @@ def create_page_video(image: Image.Image, audio_path: str,
 
 def merge_videos(video_paths: list, output_path: str):
     """複数の動画を結合"""
-    from moviepy.editor import VideoFileClip
-    
     clips = [VideoFileClip(path) for path in video_paths]
     final = concatenate_videoclips(clips, method="compose")
     
@@ -556,13 +557,18 @@ def process_pdf_to_movie(pdf_file, program_style_name: str, gemini_api_key: str,
     """
     if pdf_file is None:
         return None, "PDFファイルをアップロードしてください", ""
-    
-    if not gemini_api_key:
-        return None, "Gemini APIキーを入力してください", ""
-    
-    if not hf_token or not hf_repo_id:
-        return None, "Hugging FaceのトークンとリポジトリIDを入力してください", ""
-    
+
+    # 環境変数またはユーザー入力からAPIキーを取得
+    api_key = gemini_api_key or ENV_GEMINI_API_KEY
+    token = hf_token or ENV_HF_TOKEN
+    repo_id = hf_repo_id or ENV_HF_REPO_ID
+
+    if not api_key:
+        return None, "Gemini APIキーを入力してください（または環境変数 GEMINI_API_KEY を設定）", ""
+
+    if not token or not repo_id:
+        return None, "Hugging FaceのトークンとリポジトリIDを入力してください（または環境変数 HF_TOKEN, HF_REPO_ID を設定）", ""
+
     try:
         pdf_path = pdf_file.name
         program_style = PROGRAM_STYLES.get(program_style_name, PROGRAM_STYLES["1人ラジオ風"])
@@ -587,7 +593,7 @@ def process_pdf_to_movie(pdf_file, program_style_name: str, gemini_api_key: str,
             scripts = generate_narration_script(
                 chunk_path, page_numbers,
                 program_style,
-                gemini_api_key
+                api_key
             )
             all_scripts.update(scripts)
             
@@ -615,7 +621,7 @@ def process_pdf_to_movie(pdf_file, program_style_name: str, gemini_api_key: str,
                     narration,
                     host_config["voice"],
                     program_style.get("tts_style", "自然に読み上げてください。"),
-                    gemini_api_key
+                    api_key
                 )
             else:
                 # 2人用マルチスピーカー
@@ -633,7 +639,7 @@ def process_pdf_to_movie(pdf_file, program_style_name: str, gemini_api_key: str,
                     dialogue,
                     program_style["speaker_config"],
                     style_prompts,
-                    gemini_api_key
+                    api_key
                 )
             
             # WAVに保存
@@ -677,7 +683,7 @@ def process_pdf_to_movie(pdf_file, program_style_name: str, gemini_api_key: str,
         progress(0.98, desc="Hugging Faceにアップロード中...")
         
         # HFにアップロード
-        hf_url = upload_to_hf_dataset(final_video_path, hf_token, hf_repo_id)
+        hf_url = upload_to_hf_dataset(final_video_path, token, repo_id)
         
         progress(1.0, desc="完了！")
         
@@ -772,21 +778,27 @@ with gr.Blocks(
             """)
             
             gr.Markdown("### 🔑 API設定")
-            
+
+            # 環境変数が設定されている場合は表示
+            if ENV_GEMINI_API_KEY:
+                gr.Markdown("✅ Gemini API Key: 環境変数から設定済み")
             gemini_key = gr.Textbox(
-                label="Gemini API Key",
+                label="Gemini API Key" + ("（オプション - 環境変数設定済み）" if ENV_GEMINI_API_KEY else ""),
                 type="password",
-                placeholder="AIza..."
+                placeholder="環境変数 GEMINI_API_KEY から取得済み" if ENV_GEMINI_API_KEY else "AIza..."
             )
-            
+
+            if ENV_HF_TOKEN:
+                gr.Markdown("✅ HF Token: 環境変数から設定済み")
             hf_token = gr.Textbox(
-                label="Hugging Face Token",
+                label="Hugging Face Token" + ("（オプション - 環境変数設定済み）" if ENV_HF_TOKEN else ""),
                 type="password",
-                placeholder="hf_..."
+                placeholder="環境変数 HF_TOKEN から取得済み" if ENV_HF_TOKEN else "hf_..."
             )
-            
+
             hf_repo = gr.Textbox(
                 label="HF Dataset Repository ID",
+                value=ENV_HF_REPO_ID,
                 placeholder="username/dataset-name"
             )
             
