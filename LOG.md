@@ -6,6 +6,14 @@
 
 ## 2025-12-27
 
+### 🆕 GitHub Actions 設定
+- **作業内容**: HF Space自動同期ワークフローを追加
+  - `.github/workflows/sync-to-hf.yml` を作成
+  - mainブランチへのプッシュ時に自動でHF Spaceに同期
+  - 手動実行（workflow_dispatch）にも対応
+- **設定手順**: GitHub Secretsに`HF_TOKEN`を追加する必要あり
+- **担当**: Claude
+
 ### 📦 ビルドエラー修正（試行1）
 - **作業内容**: `requirements.txt` の依存関係を修正
   - `moviepy==1.0.3` → `moviepy>=1.0.3`（柔軟なバージョン指定）
