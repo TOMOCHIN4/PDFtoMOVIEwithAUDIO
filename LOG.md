@@ -4,6 +4,48 @@
 
 ---
 
+## 2025-12-28
+
+### 🔨 全面改修 - Gradioスキーマエラー対応
+
+**作業内容**:
+1. **app.py 全面書き換え**
+   - シンプルなGradio UI構成に変更（約600行→約595行）
+   - 複雑なコンポーネント設定を削除
+   - `gr.File(type="filepath")` → `gr.File()` に変更
+   - カスタムCSS・theme設定を削除
+   - `demo.launch()` 設定を標準化
+   - moviepy 2.x API対応: `set_audio()` → `with_audio()`
+   - Geminiモデル名更新:
+     - `gemini-3.0-flash` → `gemini-2.0-flash`
+     - `gemini-2.5-pro-preview-tts` → `gemini-2.5-flash-preview-tts`
+
+2. **requirements.txt 整理**
+   - moviepy>=2.0.0を明示的に指定
+   - decorator依存を削除
+
+3. **README.md 更新**
+   - 機能説明を追加
+   - 環境変数の説明を追加
+
+4. **STATUS.md / LOG.md 更新**
+   - 改修内容を記録
+
+**改修理由**:
+- Gradio 5.9.1のAPIスキーマ生成でエラー発生
+- エラー: `TypeError: argument of type 'bool' is not iterable`
+- 発生箇所: `gradio_client/utils.py` → `json_schema_to_python_type`
+- 原因: 複雑なUI構成またはコンポーネントオプションがスキーマ生成と互換性問題
+
+**次のステップ**:
+- GitHubにプッシュ
+- HF Spacesでビルド・ランタイム確認
+- 動作テスト
+
+**担当**: Claude
+
+---
+
 ## 2025-12-27
 
 ### 🚨 ランタイムエラー発生 - Gradio SSR問題
@@ -17,7 +59,7 @@
   - Gradio 5.x の SSR（Server Side Rendering）が有効
   - gradio_clientとのスキーマ互換性問題
 - **対策案**:
-  1. `demo.launch(ssr=False)` でSSR無効化
+  1. `demo.launch(ssr_mode=False)` でSSR無効化
   2. Gradioバージョン調整
   3. コンポーネント設定見直し
 - **担当**: 調査中
@@ -104,15 +146,6 @@
 
 ---
 
-## 現在の状況
-
-### 🚨 ランタイムエラー対応中
-- **状態**: ビルド成功、起動成功、しかしGradio SSRエラー発生
-- **対応済み**: gradio 5.9.1、moviepy 2.x対応、環境シークレット対応
-- **次のステップ**: SSRエラー解消 → UI表示確認 → 動作テスト
-
----
-
 ## ログ記入テンプレート
 
 ```markdown
@@ -135,7 +168,7 @@
 - 🔧 **修正**: バグ修正
 - ⚡ **改善**: パフォーマンス・UX改善
 - 📝 **ドキュメント**: ドキュメント更新
-- 🔨 **リファクタリング**: コード整理
+- 🔨 **リファクタリング**: コード整理・全面改修
 - 🔒 **セキュリティ**: セキュリティ関連
 - 📦 **依存関係**: ライブラリ更新
 - 🚨 **緊急**: 緊急対応が必要な問題

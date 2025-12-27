@@ -4,60 +4,55 @@
 
 | 項目 | 状態 |
 |------|------|
-| **全体進捗** | 🔴 ランタイムエラーあり |
-| **ビルド** | ✅ 成功（起動確認） |
-| **ランタイム** | ❌ Gradio SSR/API エラー |
+| **全体進捗** | 🔄 全面改修完了・デプロイ待ち |
+| **ビルド** | ❓ 未確認 |
+| **ランタイム** | ❓ 未確認 |
 | **動作テスト** | ⏸️ 未実施 |
 | **コア機能** | 📝 実装済み（未検証） |
-| **UI** | ❌ SSRエラーで表示不可 |
+| **UI** | ✅ シンプル版に全面改修 |
 | **API連携** | ❓ 未確認 |
 | **GitHub連携** | ✅ 設定済み |
-| **ドキュメント** | ✅ 整備済み |
 
 ---
 
-## 🚨 現在の課題: Gradio SSR エラー
+## 🔄 2025-12-28: 全面改修
 
-### エラー概要
-```
-TypeError: argument of type 'bool' is not iterable
-```
+### 改修内容
+1. **app.py 全面書き換え**
+   - シンプルなGradio UI構成に変更
+   - 問題を起こしていた複雑なコンポーネント設定を削除
+   - `gr.File`の`type="filepath"`オプション削除
+   - カスタムCSSを削除
+   - `demo.launch()`設定を標準化
+   - moviepy 2.x API対応（`set_audio()` → `with_audio()`）
+   - Geminiモデル名を更新（`gemini-2.0-flash`, `gemini-2.5-flash-preview-tts`）
 
-### 発生箇所
-- `gradio_client/utils.py` の `json_schema_to_python_type` 関数
-- Gradio API情報取得時にエラー
+2. **requirements.txt 整理**
+   - moviepy>=2.0.0に明示的指定
+   - 不要なパッケージ削除
 
-### 原因（推定）
-- Gradio 5.x の SSR（Server Side Rendering）モードが有効
-- `gradio_client` とのスキーマ互換性問題
+3. **README.md 更新**
+   - 機能説明を追加
+   - 環境変数の説明を追加
 
-### 対策案
-1. **SSRを無効化**: `demo.launch(ssr=False)` に変更
-2. **Gradioバージョン調整**: 5.9.1から別バージョンへ
-3. **コンポーネント設定見直し**: 問題のあるコンポーネントを特定
-
----
-
-## 直近の対応
-
-### ✅ 解消済み: ビルドエラー
-- websockets競合 → gradio 5.9.1 で解消
-- moviepy 2.x対応 → インポート修正で解消
-- 環境シークレット対応 → 追加済み
-
-### ❌ 未解消: ランタイムエラー
-- アプリ起動は成功（`Running on local URL: http://0.0.0.0:7860`）
-- しかしGradio APIエンドポイントでエラー発生
-- UI表示が正常に行われない
+### 改修理由
+- Gradio 5.9.1のAPIスキーマ生成でエラー発生
+- `TypeError: argument of type 'bool' is not iterable`
+- `gradio_client/utils.py`の`json_schema_to_python_type`関数で問題
 
 ---
 
 ## 次のステップ
 
-### 🚨 緊急対応
-- [ ] SSR無効化を試行 (`ssr=False`)
-- [ ] エラー解消後、UI表示確認
-- [ ] 基本動作テスト
+### 🔜 即時対応
+- [ ] GitHubにプッシュ
+- [ ] HF Spacesでビルド確認
+- [ ] ランタイム動作確認
+
+### 📋 動作確認後
+- [ ] 基本動作テスト（PDF→動画変換）
+- [ ] 各番組スタイルの動作確認
+- [ ] エラーハンドリングの確認
 
 ---
 
@@ -65,15 +60,14 @@ TypeError: argument of type 'bool' is not iterable
 
 ```
 PDFtoMOVIEwithAUDIO/
-├── app.py                          # メインアプリケーション
-├── requirements.txt                # Python依存関係
-├── packages.txt                    # システム依存関係
-├── README.md                       # HF Spaces設定
-├── .github/workflows/sync-to-hf.yml # GitHub Actions
-├── PLAN.md                         # プロジェクト計画
-├── STATUS.md                       # このファイル
-├── LOG.md                          # 開発ログ
-└── CLAUDE.md                       # Claude向け指示
+├── app.py                  # メインアプリ（全面改修済み）
+├── requirements.txt        # Python依存関係（整理済み）
+├── packages.txt            # システム依存関係
+├── README.md               # HF Spaces設定（更新済み）
+├── STATUS.md               # このファイル
+├── LOG.md                  # 開発ログ
+├── CLAUDE.md               # Claude向け指示
+└── .github/workflows/      # GitHub Actions
 ```
 
 ---
@@ -81,70 +75,16 @@ PDFtoMOVIEwithAUDIO/
 ## 機能別ステータス
 
 ### コア機能（すべて未検証）
-| 機能 | 実装 | 動作確認 | 説明 |
-|------|------|----------|------|
-| PDF分割 | 📝 | ❓ | 5ページ単位でチャンク化 |
-| 画像抽出 | 📝 | ❓ | 150 DPIでPNG出力 |
-| スクリプト生成 | 📝 | ❓ | Gemini API使用 |
-| TTS音声生成 | 📝 | ❓ | Gemini TTS |
-| 音声処理 | 📝 | ❓ | 速度調整・無音挿入 |
-| 動画生成 | 📝 | ❓ | 1920x1080, 24fps |
-| 動画結合 | 📝 | ❓ | moviepy使用 |
-| HFアップロード | 📝 | ❓ | タイムスタンプ付き |
-
-### プログラムスタイル（すべて未検証）
-| スタイル | 実装 | 動作確認 | 話者 |
-|---------|------|----------|------|
-| 1人ラジオ風 | 📝 | ❓ | 1人 |
-| 2人ポッドキャスト風 | 📝 | ❓ | 2人 |
-| 2人漫才風 | 📝 | ❓ | 2人 |
-| 1人ニュース風 | 📝 | ❓ | 1人 |
-| 1人講義風 | 📝 | ❓ | 1人 |
-| 2人インタビュー風 | 📝 | ❓ | 2人 |
-
----
-
-## 依存関係
-
-### Python パッケージ
-| パッケージ | バージョン | 用途 | 状態 |
-|-----------|-----------|------|------|
-| gradio | 5.9.1 | UI | ❌ SSRエラー |
-| google-genai | >=1.0.0 | AI API | ❓ |
-| PyMuPDF | >=1.24.0 | PDF処理 | ❓ |
-| pdf2image | >=1.17.0 | PDF→画像 | ❓ |
-| Pillow | >=10.0.0 | 画像処理 | ❓ |
-| pydub | >=0.25.1 | 音声処理 | ❓ |
-| moviepy | 2.x | 動画生成 | ✅ インポート修正済み |
-| numpy | >=1.24.0 | 数値計算 | ❓ |
-| huggingface_hub | >=0.20.0 | HF連携 | ❓ |
-
-### システムパッケージ
-| パッケージ | 用途 | 状態 |
-|-----------|------|------|
-| poppler-utils | PDFレンダリング | ❓ |
-| ffmpeg | 動画エンコード | ❓ |
-
----
-
-## 既知の課題
-
-### 優先度: 緊急 🚨
-- [ ] **Gradio SSRエラー解消** - UI表示不可
-
-### 優先度: 高（エラー解消後）
-- [ ] 基本動作テストの実施
-- [ ] API連携の動作確認
-- [ ] Gradio 5.x でのUI互換性確認
-
-### 優先度: 中（動作確認後）
-- [ ] APIエラー時のリトライ機構
-- [ ] 一時ファイルのクリーンアップ
-- [ ] 長時間処理時のタイムアウト対策
-
-### 優先度: 低（安定化後）
-- [ ] 音声速度のUI調整機能
-- [ ] 無音時間のUI調整機能
+| 機能 | 実装 | 動作確認 |
+|------|------|----------|
+| PDF分割 | 📝 | ❓ |
+| 画像抽出 | 📝 | ❓ |
+| スクリプト生成 | 📝 | ❓ |
+| TTS音声生成 | 📝 | ❓ |
+| 音声処理 | 📝 | ❓ |
+| 動画生成 | 📝 | ❓ |
+| 動画結合 | 📝 | ❓ |
+| HFアップロード | 📝 | ❓ |
 
 ---
 
@@ -158,45 +98,7 @@ PDFtoMOVIEwithAUDIO/
 | ❓ | 未確認・未テスト |
 | ❌ | エラー・問題あり |
 | ⏸️ | 保留・待機中 |
-| 🟡 | 注意・確認必要 |
-| 🔴 | 重大な問題あり |
 
 ---
 
-## 動作環境
-
-- **プラットフォーム**: Hugging Face Spaces
-- **SDK**: Gradio 5.9.1
-- **Python**: 3.10（HF Spaces標準）
-
----
-
-## Hugging Face リソース
-
-| リソース | ID |
-|---------|-----|
-| **HF Space** | `leave-everything/PDFtoMOVIEwithAUDIO` |
-| **HF Dataset** | `leave-everything/PDFtoMOVIEwithAUDIO` |
-
----
-
-## GitHub連携
-
-| 設定 | 状態 |
-|------|------|
-| GitHub Actions | ✅ 設定済み |
-| HF_TOKEN シークレット | ✅ 設定済み |
-| 自動同期 | ✅ mainプッシュ時 |
-
----
-
-## 必要なAPI
-
-| API | 必須 | 用途 |
-|-----|------|------|
-| Gemini API Key | ✅ | スクリプト生成・TTS |
-| HF Token | ✅ | 動画アップロード |
-
----
-
-*最終更新: 2025-12-27*
+*最終更新: 2025-12-28*
