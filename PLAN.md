@@ -36,20 +36,19 @@
 
 ## フェーズ別計画
 
-### Phase 0: ビルド・起動 🔴 現在のフェーズ（ランタイムエラーあり）
+### Phase 0: ビルド・起動 ✅ 完了
 - [x] ビルドエラーの特定（websockets競合）
 - [x] ビルドエラーの解消（gradio 5.9.1へ更新）
 - [x] moviepy 2.x対応（インポート修正）
 - [x] 環境シークレット対応（GEMINI_API_KEY, HF_TOKEN）
 - [x] GitHub → HF Space 自動同期設定
-- [x] HF Spacesでの起動確認（起動成功）
-- [ ] **Gradio SSRエラー解消** 🚨 ← 現在ここ
-- [ ] 基本的な画面表示確認
+- [x] HF Spacesでの起動確認
+- [x] Gradio SSRエラー解消（ssr_mode=False）
+- [x] 基本的な画面表示確認
 
-### Phase 1: 基盤構築・動作確認 📋 次のフェーズ
-- [ ] Gradio UI基本動作確認
+### Phase 1: 基盤構築・動作確認 🔴 現在のフェーズ
 - [ ] PDF処理パイプライン動作確認
-- [ ] Gemini API連携確認
+- [ ] Gemini API連携確認（スクリプト生成）
 - [ ] TTS音声生成確認
 - [ ] 動画生成・結合確認
 - [ ] Hugging Face Dataset連携確認
@@ -88,8 +87,8 @@
 | カテゴリ | 技術 | 用途 |
 |---------|------|------|
 | UI | Gradio 5.9.1 | Webインターフェース |
-| AI（スクリプト） | Gemini 3.0 Flash | ナレーション台本生成 |
-| AI（音声） | Gemini 2.5 Pro TTS | テキスト読み上げ |
+| AI（スクリプト） | Gemini 2.0 Flash | ナレーション台本生成 |
+| AI（音声） | Gemini 2.5 Flash TTS | テキスト読み上げ |
 | PDF処理 | PyMuPDF, pdf2image | PDF操作・画像変換 |
 | 画像処理 | Pillow | リサイズ・加工 |
 | 音声処理 | pydub | 速度調整・無音挿入 |
@@ -144,4 +143,4 @@ OUTPUT_RESOLUTION = (1920, 1080)  # 動画解像度
 
 ---
 
-*最終更新: 2025-12-27*
+*最終更新: 2025-12-28*
