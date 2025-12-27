@@ -171,7 +171,7 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
             types.Content(
                 parts=[
                     types.Part.from_bytes(data=pdf_data, mime_type="application/pdf"),
-                    types.Part.from_text(prompt)
+                    types.Part.from_text(text=prompt)
                 ]
             )
         ]
