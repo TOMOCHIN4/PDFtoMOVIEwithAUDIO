@@ -6,6 +6,17 @@
 
 ## 2025-12-27
 
+### 📦 ビルドエラー修正（試行2）- websockets競合解消
+- **作業内容**: gradio/google-genai間のwebsockets競合を解消
+  - `README.md`: gradio 4.44.1 → 5.9.1 に更新
+  - `requirements.txt`: gradioを削除（HF Spaces提供版を使用）
+- **原因**:
+  - `gradio-client 1.3.0` → `websockets<13.0`
+  - `google-genai 1.x` → `websockets>=13.0`
+  - この2つが競合していた
+- **対策**: gradio 5.x にアップグレード（websockets>=13.0対応）
+- **担当**: Claude
+
 ### 🆕 GitHub Actions 設定
 - **作業内容**: HF Space自動同期ワークフローを追加
   - `.github/workflows/sync-to-hf.yml` を作成
