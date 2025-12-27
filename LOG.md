@@ -6,6 +6,43 @@
 
 ## 2025-12-28
 
+### 🔄 Phase 1 動作テスト中
+
+**状態**: PDF→動画変換のテスト実施中
+
+**テスト中に発見・修正したバグ**:
+1. `Part.from_text()` キーワード引数エラー → 修正済み
+2. `write_videofile()` の `verbose` 引数エラー → 修正済み
+
+**担当**: ユーザー（テスト）、Claude（バグ修正）
+
+---
+
+### 🔧 moviepy 2.x 互換性修正
+
+**作業内容**:
+- `verbose=False` を削除（moviepy 2.xで廃止）
+- `logger=None` → `logger="bar"` に変更（進捗表示有効化）
+
+**エラー**: `TypeError: got an unexpected keyword argument 'verbose'`
+
+**担当**: Claude
+
+---
+
+### 🔧 Gemini API呼び出し修正
+
+**作業内容**:
+- `types.Part.from_text(prompt)` → `types.Part.from_text(text=prompt)`
+
+**エラー**: `TypeError: Part.from_text() takes 1 positional argument but 2 were given`
+
+**原因**: google-genai 1.xはキーワード引数`text=`が必須
+
+**担当**: Claude
+
+---
+
 ### ✅ 起動成功確認
 
 **結果**: HF Spacesで正常起動を確認

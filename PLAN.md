@@ -46,8 +46,10 @@
 - [x] Gradio SSRエラー解消（ssr_mode=False）
 - [x] 基本的な画面表示確認
 
-### Phase 1: 基盤構築・動作確認 🔴 現在のフェーズ
-- [ ] PDF処理パイプライン動作確認
+### Phase 1: 基盤構築・動作確認 🔴 現在のフェーズ（テスト中）
+- [x] google-genai API互換性修正（Part.from_text キーワード引数）
+- [x] moviepy 2.x互換性修正（verbose引数削除）
+- [ ] PDF処理パイプライン動作確認 ← テスト中
 - [ ] Gemini API連携確認（スクリプト生成）
 - [ ] TTS音声生成確認
 - [ ] 動画生成・結合確認
