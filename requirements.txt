@@ -1,4 +1,4 @@
-gradio==4.44.1
+# Note: gradio is provided by HF Spaces, don't specify here
 google-genai>=1.0.0
 PyMuPDF>=1.24.0
 pdf2image>=1.17.0
@@ -9,3 +9,4 @@ numpy>=1.24.0
 huggingface_hub>=0.20.0
 imageio>=2.9.0
 imageio-ffmpeg>=0.4.7
+decorator>=4.0.0
