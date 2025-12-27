@@ -853,4 +853,4 @@ with gr.Blocks(
 
 
 if __name__ == "__main__":
-    demo.launch(ssr=False)
+    demo.launch(ssr_mode=False)
