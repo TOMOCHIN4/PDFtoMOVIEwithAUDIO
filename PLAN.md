@@ -36,14 +36,15 @@
 
 ## フェーズ別計画
 
-### Phase 0: ビルド・起動 🔴 現在のフェーズ（ランタイムエラーあり）
+### Phase 0: ビルド・起動 🟡 現在のフェーズ（修正PRレビュー待ち）
 - [x] ビルドエラーの特定（websockets競合）
 - [x] ビルドエラーの解消（gradio 5.9.1へ更新）
 - [x] moviepy 2.x対応（インポート修正）
 - [x] 環境シークレット対応（GEMINI_API_KEY, HF_TOKEN）
 - [x] GitHub → HF Space 自動同期設定
 - [x] HF Spacesでの起動確認（起動成功）
-- [ ] **Gradio SSRエラー解消** 🚨 ← 現在ここ
+- [x] Gradio API Schemaエラー修正（show_api=False）
+- [ ] **PRマージ・動作確認** 🔄 ← 現在ここ
 - [ ] 基本的な画面表示確認
 
 ### Phase 1: 基盤構築・動作確認 📋 次のフェーズ

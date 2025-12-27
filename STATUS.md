@@ -4,37 +4,36 @@
 
 | 項目 | 状態 |
 |------|------|
-| **全体進捗** | 🔴 ランタイムエラーあり |
+| **全体進捗** | 🟡 修正PRレビュー待ち |
 | **ビルド** | ✅ 成功（起動確認） |
-| **ランタイム** | ❌ Gradio SSR/API エラー |
+| **ランタイム** | 🔄 修正済み（確認待ち） |
 | **動作テスト** | ⏸️ 未実施 |
 | **コア機能** | 📝 実装済み（未検証） |
-| **UI** | ❌ SSRエラーで表示不可 |
+| **UI** | 🔄 修正済み（確認待ち） |
 | **API連携** | ❓ 未確認 |
 | **GitHub連携** | ✅ 設定済み |
 | **ドキュメント** | ✅ 整備済み |
 
 ---
 
-## 🚨 現在の課題: Gradio SSR エラー
+## 🔄 現在の状態: 修正PRレビュー待ち
 
-### エラー概要
+### 修正内容
+- **ブランチ**: `claude/fix-gradio-schema-error-pndBh`
+- **変更**: `demo.launch()` に `show_api=False` を追加
+- **目的**: APIドキュメント生成を無効化し、schema生成エラーを回避
+
+### 解決した問題
 ```
 TypeError: argument of type 'bool' is not iterable
 ```
 
-### 発生箇所
-- `gradio_client/utils.py` の `json_schema_to_python_type` 関数
-- Gradio API情報取得時にエラー
+### 原因
+- `gr.File` コンポーネントが生成するJSON schemaに `additionalProperties: True` (boolean) が含まれる
+- `gradio_client/utils.py` の `json_schema_to_python_type` 関数がこれを辞書として処理しようとして失敗
 
-### 原因（推定）
-- Gradio 5.x の SSR（Server Side Rendering）モードが有効
-- `gradio_client` とのスキーマ互換性問題
-
-### 対策案
-1. **SSRを無効化**: `demo.launch(ssr=False)` に変更
-2. **Gradioバージョン調整**: 5.9.1から別バージョンへ
-3. **コンポーネント設定見直し**: 問題のあるコンポーネントを特定
+### 対策
+`show_api=False` でAPIドキュメント生成を無効化し、問題のschema生成処理をスキップ
 
 ---
 
@@ -45,18 +44,18 @@ TypeError: argument of type 'bool' is not iterable
 - moviepy 2.x対応 → インポート修正で解消
 - 環境シークレット対応 → 追加済み
 
-### ❌ 未解消: ランタイムエラー
-- アプリ起動は成功（`Running on local URL: http://0.0.0.0:7860`）
-- しかしGradio APIエンドポイントでエラー発生
-- UI表示が正常に行われない
+### ✅ 修正済み: API Schemaエラー
+- `show_api=False` でAPIドキュメント生成を無効化
+- PRレビュー待ち
 
 ---
 
 ## 次のステップ
 
-### 🚨 緊急対応
-- [ ] SSR無効化を試行 (`ssr=False`)
-- [ ] エラー解消後、UI表示確認
+### 🔄 PRマージ後
+- [ ] PRをマージ
+- [ ] HF Spaceで動作確認
+- [ ] UI表示確認
 - [ ] 基本動作テスト
 
 ---

@@ -6,7 +6,21 @@
 
 ## 2025-12-27
 
-### 🚨 ランタイムエラー発生 - Gradio SSR問題
+### 🔧 Gradio API Schema エラー修正
+- **作業内容**: `demo.launch()` に `show_api=False` を追加
+- **変更ファイル**: `app.py:856-857`
+- **エラー内容**:
+  ```
+  TypeError: argument of type 'bool' is not iterable
+  ```
+- **原因**:
+  - `gr.File` コンポーネントが生成するJSON schemaに `additionalProperties: True` (boolean) が含まれる
+  - `gradio_client/utils.py` の `json_schema_to_python_type` 関数がこれを辞書として処理しようとして失敗
+- **対策**: `show_api=False` でAPIドキュメント生成を無効化し、問題のschema生成処理をスキップ
+- **PR**: claude/fix-gradio-schema-error-pndBh
+- **担当**: Claude
+
+### 🚨 ランタイムエラー発生 - Gradio API Schema問題
 - **状態**: アプリ起動成功、しかしUI表示でエラー
 - **エラー内容**:
   ```
@@ -14,13 +28,13 @@
   ```
 - **発生箇所**: `gradio_client/utils.py` → `json_schema_to_python_type`
 - **原因（推定）**:
-  - Gradio 5.x の SSR（Server Side Rendering）が有効
+  - `gr.File` コンポーネントのschema生成問題
   - gradio_clientとのスキーマ互換性問題
 - **対策案**:
-  1. `demo.launch(ssr=False)` でSSR無効化
+  1. `show_api=False` でAPIドキュメント生成を無効化 ← 採用
   2. Gradioバージョン調整
   3. コンポーネント設定見直し
-- **担当**: 調査中
+- **担当**: 調査完了 → 修正済み
 
 ### ✅ PR#5 マージ完了 - moviepy 2.x + 環境シークレット対応
 - **作業内容**: ビルドエラー修正をmainにマージ
@@ -106,10 +120,10 @@
 
 ## 現在の状況
 
-### 🚨 ランタイムエラー対応中
-- **状態**: ビルド成功、起動成功、しかしGradio SSRエラー発生
-- **対応済み**: gradio 5.9.1、moviepy 2.x対応、環境シークレット対応
-- **次のステップ**: SSRエラー解消 → UI表示確認 → 動作テスト
+### 🔄 修正PRレビュー待ち
+- **状態**: Gradio API Schemaエラーの修正完了、PRレビュー待ち
+- **対応済み**: gradio 5.9.1、moviepy 2.x対応、環境シークレット対応、show_api=False
+- **次のステップ**: PRマージ → HF Spaceで動作確認 → 基本動作テスト
 
 ---
 
