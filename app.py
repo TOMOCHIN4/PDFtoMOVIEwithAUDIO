@@ -93,8 +93,10 @@ PROGRAM_STYLES = {
 
 def split_pdf(pdf_path, pages_per_chunk=5):
     """PDFを指定ページ数ごとに分割"""
+    print(f"[split_pdf] PDF分割開始")
     doc = fitz.open(pdf_path)
     total_pages = len(doc)
+    print(f"[split_pdf] 総ページ数: {total_pages}, {pages_per_chunk}ページごとに分割")
     chunks = []
 
     for start in range(0, total_pages, pages_per_chunk):
@@ -112,16 +114,21 @@ def split_pdf(pdf_path, pages_per_chunk=5):
         chunks.append((chunk_path, page_numbers))
 
     doc.close()
+    print(f"[split_pdf] 分割完了: {len(chunks)}チャンク作成")
     return chunks
 
 
 def pdf_to_images(pdf_path, dpi=150):
     """PDFを画像に変換"""
-    return convert_from_path(pdf_path, dpi=dpi)
+    print(f"[pdf_to_images] 画像変換開始")
+    images = convert_from_path(pdf_path, dpi=dpi)
+    print(f"[pdf_to_images] 変換完了: {len(images)}ページ")
+    return images
 
 
 def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_key):
     """Gemini APIでナレーション台本を生成"""
+    print(f"[generate_script] 台本生成開始: ページ {page_numbers}")
     client = genai.Client(api_key=api_key)
 
     with open(pdf_chunk_path, 'rb') as f:
@@ -225,11 +232,13 @@ PDFの内容を詳細に分析し、視聴者にとって価値のあるナレ�
                     {"speaker": speaker_names[1], "text": "なるほど。"}
                 ]
 
+    print(f"[generate_script] 台本生成完了: {len(result)}ページ分")
     return result
 
 
 def text_to_speech_single(text, voice_name, style_prompt, api_key):
     """1人用TTS"""
+    print(f"[TTS] 音声生成開始 (1人モード, voice={voice_name})")
     client = genai.Client(api_key=api_key)
 
     full_prompt = f"{style_prompt}\n\n以下のテキストを読み上げてください:\n{text}"
@@ -249,11 +258,13 @@ def text_to_speech_single(text, voice_name, style_prompt, api_key):
         )
     )
 
+    print(f"[TTS] 音声生成完了 (1人モード)")
     return response.candidates[0].content.parts[0].inline_data.data
 
 
 def text_to_speech_multi(dialogue, speaker_config, style_prompts, api_key):
     """2人用マルチスピーカーTTS"""
+    print(f"[TTS] 音声生成開始 (2人モード, {len(dialogue)}セリフ)")
     client = genai.Client(api_key=api_key)
 
     conversation_text = ""
@@ -303,6 +314,7 @@ def text_to_speech_multi(dialogue, speaker_config, style_prompts, api_key):
         )
     )
 
+    print(f"[TTS] 音声生成完了 (2人モード)")
     return response.candidates[0].content.parts[0].inline_data.data
 
 
@@ -317,6 +329,7 @@ def save_pcm_to_wav(pcm_data, output_path, sample_rate=24000, channels=1, sample
 
 def process_audio(wav_path, speed=1.2, silence_before_ms=1000, silence_after_ms=500):
     """音声処理: 速度変換、無音追加"""
+    print(f"[process_audio] 音声処理開始 (速度={speed}x)")
     audio = AudioSegment.from_wav(wav_path)
 
     new_sample_rate = int(audio.frame_rate * speed)
@@ -333,6 +346,7 @@ def process_audio(wav_path, speed=1.2, silence_before_ms=1000, silence_after_ms=
     final_audio.export(output_path, format='wav')
 
     duration = len(final_audio) / 1000.0
+    print(f"[process_audio] 音声処理完了 (長さ={duration:.1f}秒)")
 
     return output_path, duration
 
@@ -362,6 +376,7 @@ def resize_image_for_video(image, target_size=(1920, 1080)):
 
 def create_page_video(image, audio_path, duration):
     """ページ動画を作成"""
+    print(f"[create_video] ページ動画作成開始 (長さ={duration:.1f}秒)")
     resized_img = resize_image_for_video(image, OUTPUT_RESOLUTION)
 
     img_path = tempfile.mktemp(suffix='.png')
@@ -384,6 +399,7 @@ def create_page_video(image, audio_path, duration):
     img_clip.close()
     audio_clip.close()
     os.remove(img_path)
+    print(f"[create_video] ページ動画作成完了")
 
     return output_path
 
@@ -437,6 +453,7 @@ def merge_videos(video_paths, output_path):
 
 def upload_to_hf_dataset(video_path, hf_token, repo_id):
     """HFにアップロード"""
+    print(f"[upload] HFアップロード開始: {repo_id}")
     api = HfApi()
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -450,11 +467,17 @@ def upload_to_hf_dataset(video_path, hf_token, repo_id):
         token=hf_token
     )
 
+    print(f"[upload] アップロード完了: {url}")
     return url
 
 
 def process_pdf_to_movie(pdf_file, program_style_name, gemini_api_key, hf_token, hf_repo_id, progress=gr.Progress()):
     """メイン処理"""
+    print(f"=" * 50)
+    print(f"[main] PDF→動画変換開始")
+    print(f"[main] スタイル: {program_style_name}")
+    print(f"=" * 50)
+
     if pdf_file is None:
         return None, "PDFファイルをアップロードしてください", ""
 
@@ -559,6 +582,12 @@ def process_pdf_to_movie(pdf_file, program_style_name, gemini_api_key, hf_token,
 
         progress(1.0, desc="完了!")
 
+        print(f"=" * 50)
+        print(f"[main] 処理完了!")
+        print(f"[main] 総ページ数: {total_pages}")
+        print(f"[main] 保存先: {hf_url}")
+        print(f"=" * 50)
+
         status_msg = f"""
 完了!
 
@@ -573,6 +602,8 @@ def process_pdf_to_movie(pdf_file, program_style_name, gemini_api_key, hf_token,
         return final_video_path, status_msg, hf_url
 
     except Exception as e:
+        print(f"[main] エラー発生: {str(e)}")
+        print(traceback.format_exc())
         error_msg = f"エラー: {str(e)}\n\n{traceback.format_exc()}"
         return None, error_msg, ""
 
