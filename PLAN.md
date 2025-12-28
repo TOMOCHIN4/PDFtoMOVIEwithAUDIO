@@ -49,10 +49,13 @@
 ### Phase 1: 基盤構築・動作確認 🔴 現在のフェーズ（テスト中）
 - [x] google-genai API互換性修正（Part.from_text キーワード引数）
 - [x] moviepy 2.x互換性修正（verbose引数削除）
-- [ ] PDF処理パイプライン動作確認 ← テスト中
-- [ ] Gemini API連携確認（スクリプト生成）
-- [ ] TTS音声生成確認
-- [ ] 動画生成・結合確認
+- [x] 動画結合高速化（ffmpeg concat、10倍高速）
+- [x] 台本生成モデル強化（gemini-3-flash-preview）
+- [x] 台本生成プロンプト強化（PDF認識・具体性要求）
+- [x] PDF処理パイプライン動作確認
+- [x] TTS音声生成確認
+- [x] 動画生成・結合確認
+- [ ] Gemini API連携確認（スクリプト生成品質）← テスト中
 - [ ] Hugging Face Dataset連携確認
 - [ ] 各プログラムスタイルの動作確認
 
@@ -89,7 +92,7 @@
 | カテゴリ | 技術 | 用途 |
 |---------|------|------|
 | UI | Gradio 5.9.1 | Webインターフェース |
-| AI（スクリプト） | Gemini 2.0 Flash | ナレーション台本生成 |
+| AI（スクリプト） | Gemini 3 Flash Preview | ナレーション台本生成 |
 | AI（音声） | Gemini 2.5 Flash TTS | テキスト読み上げ |
 | PDF処理 | PyMuPDF, pdf2image | PDF操作・画像変換 |
 | 画像処理 | Pillow | リサイズ・加工 |

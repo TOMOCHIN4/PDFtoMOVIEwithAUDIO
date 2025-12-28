@@ -22,17 +22,20 @@
 - **GitHub Actions失敗**: `git init -b main`で解決
 - **Gemini API呼び出しエラー**: `Part.from_text(text=prompt)`に修正
 - **moviepy 2.x互換性**: `verbose`引数削除、`logger="bar"`に変更
+- **動画結合の低速化**: ffmpeg直接結合で10倍高速化
+- **台本生成の品質問題**: モデル・プロンプト強化で対応中
 
 ### 現在の構成
 - **Gradio**: 5.9.1（SSR無効）
-- **google-genai**: 1.x（キーワード引数対応）
+- **台本生成**: gemini-3-flash-preview（強化プロンプト）
+- **TTS**: gemini-2.5-flash-preview-tts
+- **動画結合**: ffmpeg concat（再エンコードなし）
 - **pydantic**: 2.10.6固定
-- **moviepy**: 2.x対応済み
 
 ### デプロイ状況
 - GitHub → HF Spaces 自動同期: ✅ 動作中
 - HF Spaces: ✅ 正常起動
-- 動作テスト: 🔄 実施中
+- 動作テスト: 🔄 台本生成品質テスト中
 
 ---
 
@@ -96,4 +99,4 @@ PDFtoMOVIEwithAUDIO/
 
 ---
 
-*最終更新: 2025-12-28 Phase 1テスト中*
+*最終更新: 2025-12-28 台本生成品質テスト中*
