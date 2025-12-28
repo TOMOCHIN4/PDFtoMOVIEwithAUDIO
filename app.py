@@ -266,7 +266,7 @@ PDFの内容を詳細に分析し、視聴者にとって価値のあるナレ�
 
     # 構造化出力でAPI呼び出し
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-05-20",
+        model="gemini-3-flash-preview",
         contents=[
             types.Content(
                 parts=[
