@@ -31,7 +31,7 @@ AUDIO_SPEED = 1.2
 SILENCE_BEFORE = 1000
 SILENCE_AFTER = 500
 OUTPUT_FPS = 24
-OUTPUT_RESOLUTION = (1920, 1080)
+OUTPUT_RESOLUTION = (1280, 720)  # HD画質（高速化）
 
 # 環境変数
 ENV_GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -126,9 +126,9 @@ def pdf_to_images(pdf_path, dpi=150):
     return images
 
 
-def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_key):
+def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_key, chunk_index, total_chunks, total_pages):
     """Gemini APIでナレーション台本を生成"""
-    print(f"[generate_script] 台本生成開始: ページ {page_numbers}")
+    print(f"[generate_script] 台本生成開始: ページ {page_numbers} (チャンク {chunk_index}/{total_chunks})")
     client = genai.Client(api_key=api_key)
 
     with open(pdf_chunk_path, 'rb') as f:
@@ -161,8 +161,33 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 ```
 '''
 
+    # チャンク位置に応じた構成指示
+    if total_chunks == 1:
+        position_instruction = "これは単独の資料です。適切な導入と締めくくりを含めてください。"
+    elif chunk_index == 1:
+        position_instruction = f"""これはPDF全体（{total_pages}ページ）の冒頭部分（{chunk_index}/{total_chunks}チャンク目）です。
+- 番組の導入として、これから何を解説するかを簡潔に紹介してください
+- ただし「締めくくり」や「まとめ」は不要です（続きがあるため）"""
+    elif chunk_index == total_chunks:
+        if total_chunks == 2:
+            position_instruction = f"""これはPDF全体（{total_pages}ページ）の後半部分（2/2チャンク目＝最終）です。
+- 冒頭の導入は不要です（前半で既に導入済み）
+- 最後のページで全体のまとめや締めくくりを入れてください"""
+        else:
+            position_instruction = f"""これはPDF全体（{total_pages}ページ）の最終部分（{chunk_index}/{total_chunks}チャンク目）です。
+- 冒頭の導入は不要です（すでに番組は始まっています）
+- 最後のページで全体のまとめや締めくくりを入れてください"""
+    else:
+        position_instruction = f"""これはPDF全体（{total_pages}ページ）の中盤部分（{chunk_index}/{total_chunks}チャンク目）です。
+- 冒頭の導入は不要です（すでに番組は始まっています）
+- 締めくくりも不要です（まだ続きがあります）
+- 内容の解説に集中してください"""
+
     prompt = f"""
 あなたは優秀なナレーション台本ライターです。
+
+【重要：番組の構成位置】
+{position_instruction}
 
 【重要な指示】
 1. 添付されたPDFの各ページを注意深く読み取ってください
@@ -173,7 +198,7 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 {program_style["script_prompt"]}
 
 【形式要件】
-- 各ページ30秒〜1分程度で読める長さにしてください
+- 各ページ15〜30秒程度で読める長さにしてください（簡潔に）
 - PDFの実際の内容に基づいて、具体的で情報豊富なナレーションを作成してください
 - 「ページXの内容です」のような曖昧な表現は禁止です
 - 必ずPDFに書かれている具体的な情報、データ、説明を盛り込んでください
@@ -241,7 +266,15 @@ def text_to_speech_single(text, voice_name, style_prompt, api_key):
     print(f"[TTS] 音声生成開始 (1人モード, voice={voice_name})")
     client = genai.Client(api_key=api_key)
 
-    full_prompt = f"{style_prompt}\n\n以下のテキストを読み上げてください:\n{text}"
+    full_prompt = f"""{style_prompt}
+
+【重要な読み上げ指示】
+- やや早口でテンポよく読み上げてください
+- 日本語の発音は正確に、滑舌よくはっきりと発声してください
+- 聞き取りやすさを維持しながらスピード感のある読み上げをしてください
+
+以下のテキストを読み上げてください:
+{text}"""
 
     response = client.models.generate_content(
         model="gemini-2.5-flash-preview-tts",
@@ -279,6 +312,11 @@ def text_to_speech_multi(dialogue, speaker_config, style_prompts, api_key):
 
 {host_info["name"]}の話し方: {style_prompts.get("host", "自然に話してください")}
 {guest_info["name"]}の話し方: {style_prompts.get("guest", "自然に話してください")}
+
+【重要な読み上げ指示】
+- やや早口でテンポよく読み上げてください
+- 日本語の発音は正確に、滑舌よくはっきりと発声してください
+- 掛け合いのテンポ感を大切に、スピード感のある会話にしてください
 
 会話:
 {conversation_text}
@@ -504,11 +542,16 @@ def process_pdf_to_movie(pdf_file, program_style_name, gemini_api_key, hf_token,
         all_images = pdf_to_images(pdf_path)
 
         all_scripts = {}
+        total_chunks = len(chunks)
         for i, (chunk_path, page_numbers) in enumerate(chunks):
+            chunk_index = i + 1  # 1-indexed
             progress(0.1 + (0.3 * i / len(chunks)),
-                    desc=f"台本生成中... {i+1}/{len(chunks)}")
+                    desc=f"台本生成中... {chunk_index}/{total_chunks}")
 
-            scripts = generate_narration_script(chunk_path, page_numbers, program_style, api_key)
+            scripts = generate_narration_script(
+                chunk_path, page_numbers, program_style, api_key,
+                chunk_index=chunk_index, total_chunks=total_chunks, total_pages=total_pages
+            )
             all_scripts.update(scripts)
             os.remove(chunk_path)
 
