@@ -9,6 +9,7 @@ from google.genai import types
 import os
 import tempfile
 import wave
+import time
 from pathlib import Path
 from pdf2image import convert_from_path
 from PIL import Image
@@ -21,6 +22,59 @@ import datetime
 import json
 import re
 import traceback
+from pydantic import BaseModel
+from typing import List
+
+
+# ===========================
+# 構造化出力スキーマ
+# ===========================
+class DialogueLine(BaseModel):
+    """2人モードの1セリフ"""
+    speaker: str
+    text: str
+
+
+class PageScriptSingle(BaseModel):
+    """1人モード: 1ページ分のナレーション"""
+    page_number: int
+    narration: str
+
+
+class PageScriptMulti(BaseModel):
+    """2人モード: 1ページ分の対話"""
+    page_number: int
+    dialogue: List[DialogueLine]
+
+
+class ScriptResponseSingle(BaseModel):
+    """1人モード: 全ページのナレーション"""
+    pages: List[PageScriptSingle]
+
+
+class ScriptResponseMulti(BaseModel):
+    """2人モード: 全ページの対話"""
+    pages: List[PageScriptMulti]
+
+
+# ===========================
+# リトライ機構
+# ===========================
+def call_with_retry(func, *args, max_retries=3, initial_delay=60, **kwargs):
+    """レートリミット対応のリトライ機構"""
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                delay = initial_delay * (attempt + 1)  # 60s, 120s, 180s
+                print(f"[retry] レートリミット検出。{delay}秒待機後にリトライ ({attempt + 1}/{max_retries})")
+                time.sleep(delay)
+            else:
+                raise  # 429以外のエラーはそのまま再送出
+    # 最終リトライ
+    return func(*args, **kwargs)
 
 
 # ===========================
@@ -127,7 +181,7 @@ def pdf_to_images(pdf_path, dpi=150):
 
 
 def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_key, chunk_index, total_chunks, total_pages):
-    """Gemini APIでナレーション台本を生成"""
+    """Gemini APIでナレーション台本を生成（構造化出力）"""
     print(f"[generate_script] 台本生成開始: ページ {page_numbers} (チャンク {chunk_index}/{total_chunks})")
     client = genai.Client(api_key=api_key)
 
@@ -136,30 +190,29 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 
     speaker_info = program_style["speaker_config"]
     speaker_names = [info["name"] for info in speaker_info.values()]
+    is_single_speaker = program_style["speakers"] == 1
 
-    if program_style["speakers"] == 1:
-        format_instruction = '''
-出力形式: JSON形式で出力
-```json
-{
-    "page_1": "ナレーション全文...",
-    "page_2": "ナレーション全文...",
-}
-```
-'''
+    # 構造化出力スキーマを選択
+    if is_single_speaker:
+        response_schema = ScriptResponseSingle
+        format_instruction = f"""
+出力形式: 以下のJSON構造で出力してください。
+- pages: 各ページのナレーションを含むリスト
+  - page_number: ページ番号（{page_numbers[0]}から{page_numbers[-1]}）
+  - narration: そのページのナレーション全文（15〜30秒で読める長さ）
+"""
     else:
-        format_instruction = f'''
-出力形式: JSON形式で出力。話者名は「{speaker_names[0]}」「{speaker_names[1]}」を使用。
-```json
-{{
-    "page_1": [
-        {{"speaker": "{speaker_names[0]}", "text": "セリフ1"}},
-        {{"speaker": "{speaker_names[1]}", "text": "セリフ2"}}
-    ],
-    "page_2": [...]
-}}
-```
-'''
+        response_schema = ScriptResponseMulti
+        format_instruction = f"""
+出力形式: 以下のJSON構造で出力してください。
+- pages: 各ページの対話を含むリスト
+  - page_number: ページ番号（{page_numbers[0]}から{page_numbers[-1]}）
+  - dialogue: 話者と発言のリスト
+    - speaker: 話者名（「{speaker_names[0]}」または「{speaker_names[1]}」）
+    - text: セリフ
+
+各ページにつき2〜4往復の対話を含めてください。
+"""
 
     # チャンク位置に応じた構成指示
     if total_chunks == 1:
@@ -193,6 +246,7 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 1. 添付されたPDFの各ページを注意深く読み取ってください
 2. テキスト、図表、画像、グラフなど全ての要素を認識してください
 3. 各ページの内容を正確に理解した上で、ナレーション台本を作成してください
+4. 必ず指定されたすべてのページ（{len(page_numbers)}ページ分）の台本を生成してください
 
 【台本作成ルール】
 {program_style["script_prompt"]}
@@ -210,8 +264,9 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 PDFの内容を詳細に分析し、視聴者にとって価値のあるナレーション台本を作成してください。
 """
 
+    # 構造化出力でAPI呼び出し
     response = client.models.generate_content(
-        model="gemini-3-flash-preview",
+        model="gemini-2.5-flash-preview-05-20",
         contents=[
             types.Content(
                 parts=[
@@ -219,42 +274,45 @@ PDFの内容を詳細に分析し、視聴者にとって価値のあるナレ�
                     types.Part.from_text(text=prompt)
                 ]
             )
-        ]
+        ],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=response_schema
+        )
     )
 
-    response_text = response.text
-    json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response_text)
-
-    if json_match:
-        json_str = json_match.group(1)
-    else:
-        json_str = response_text
-
+    # 構造化されたレスポンスをパース
     try:
-        scripts = json.loads(json_str)
-    except json.JSONDecodeError:
-        scripts = {}
-        for i, page_num in enumerate(page_numbers):
-            if program_style["speakers"] == 1:
-                scripts[f"page_{i+1}"] = f"ページ{page_num}の内容を説明します。"
-            else:
-                scripts[f"page_{i+1}"] = [
-                    {"speaker": speaker_names[0], "text": f"ページ{page_num}について見ていきましょう。"},
-                    {"speaker": speaker_names[1], "text": "はい、お願いします。"}
-                ]
+        response_data = json.loads(response.text)
+        print(f"[generate_script] 構造化出力成功: {len(response_data.get('pages', []))}ページ分")
+    except json.JSONDecodeError as e:
+        print(f"[generate_script] JSONパースエラー: {e}")
+        print(f"[generate_script] レスポンス: {response.text[:500]}")
+        response_data = {"pages": []}
 
+    # 結果を変換（page_number → 実際のページ番号でマッピング）
     result = {}
-    for i, page_num in enumerate(page_numbers):
-        key = f"page_{i+1}"
-        if key in scripts:
-            result[page_num] = scripts[key]
-        else:
-            if program_style["speakers"] == 1:
-                result[page_num] = f"ページ{page_num}の内容です。"
+    pages_data = response_data.get("pages", [])
+
+    for page_info in pages_data:
+        page_num = page_info.get("page_number")
+        if page_num in page_numbers:
+            if is_single_speaker:
+                result[page_num] = page_info.get("narration", f"ページ{page_num}の内容です。")
+            else:
+                dialogue = page_info.get("dialogue", [])
+                result[page_num] = [{"speaker": d.get("speaker", speaker_names[0]), "text": d.get("text", "")} for d in dialogue]
+
+    # 欠落ページのフォールバック
+    for page_num in page_numbers:
+        if page_num not in result:
+            print(f"[generate_script] 警告: ページ{page_num}の台本が欠落、フォールバック使用")
+            if is_single_speaker:
+                result[page_num] = f"ページ{page_num}の内容について説明します。"
             else:
                 result[page_num] = [
-                    {"speaker": speaker_names[0], "text": f"ページ{page_num}の内容です。"},
-                    {"speaker": speaker_names[1], "text": "なるほど。"}
+                    {"speaker": speaker_names[0], "text": f"ページ{page_num}について見ていきましょう。"},
+                    {"speaker": speaker_names[1], "text": "はい、お願いします。"}
                 ]
 
     print(f"[generate_script] 台本生成完了: {len(result)}ページ分")
@@ -262,7 +320,7 @@ PDFの内容を詳細に分析し、視聴者にとって価値のあるナレ�
 
 
 def text_to_speech_single(text, voice_name, style_prompt, api_key):
-    """1人用TTS"""
+    """1人用TTS（レートリミット対応）"""
     print(f"[TTS] 音声生成開始 (1人モード, voice={voice_name})")
     client = genai.Client(api_key=api_key)
 
@@ -276,27 +334,29 @@ def text_to_speech_single(text, voice_name, style_prompt, api_key):
 以下のテキストを読み上げてください:
 {text}"""
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-tts",
-        contents=full_prompt,
-        config=types.GenerateContentConfig(
-            response_modalities=["AUDIO"],
-            speech_config=types.SpeechConfig(
-                voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                        voice_name=voice_name,
+    def _call_tts():
+        return client.models.generate_content(
+            model="gemini-2.5-flash-preview-tts",
+            contents=full_prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=voice_name,
+                        )
                     )
-                )
-            ),
+                ),
+            )
         )
-    )
 
+    response = call_with_retry(_call_tts)
     print(f"[TTS] 音声生成完了 (1人モード)")
     return response.candidates[0].content.parts[0].inline_data.data
 
 
 def text_to_speech_multi(dialogue, speaker_config, style_prompts, api_key):
-    """2人用マルチスピーカーTTS"""
+    """2人用マルチスピーカーTTS（レートリミット対応）"""
     print(f"[TTS] 音声生成開始 (2人モード, {len(dialogue)}セリフ)")
     client = genai.Client(api_key=api_key)
 
@@ -322,36 +382,38 @@ def text_to_speech_multi(dialogue, speaker_config, style_prompts, api_key):
 {conversation_text}
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-tts",
-        contents=style_instruction,
-        config=types.GenerateContentConfig(
-            response_modalities=["AUDIO"],
-            speech_config=types.SpeechConfig(
-                multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
-                    speaker_voice_configs=[
-                        types.SpeakerVoiceConfig(
-                            speaker=host_info["name"],
-                            voice_config=types.VoiceConfig(
-                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                    voice_name=host_info["voice"],
+    def _call_tts():
+        return client.models.generate_content(
+            model="gemini-2.5-flash-preview-tts",
+            contents=style_instruction,
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
+                        speaker_voice_configs=[
+                            types.SpeakerVoiceConfig(
+                                speaker=host_info["name"],
+                                voice_config=types.VoiceConfig(
+                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                        voice_name=host_info["voice"],
+                                    )
                                 )
-                            )
-                        ),
-                        types.SpeakerVoiceConfig(
-                            speaker=guest_info["name"],
-                            voice_config=types.VoiceConfig(
-                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                    voice_name=guest_info["voice"],
+                            ),
+                            types.SpeakerVoiceConfig(
+                                speaker=guest_info["name"],
+                                voice_config=types.VoiceConfig(
+                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                        voice_name=guest_info["voice"],
+                                    )
                                 )
-                            )
-                        ),
-                    ]
-                )
-            ),
+                            ),
+                        ]
+                    )
+                ),
+            )
         )
-    )
 
+    response = call_with_retry(_call_tts)
     print(f"[TTS] 音声生成完了 (2人モード)")
     return response.candidates[0].content.parts[0].inline_data.data
 
