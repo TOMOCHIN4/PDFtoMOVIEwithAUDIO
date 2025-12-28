@@ -155,18 +155,31 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 '''
 
     prompt = f"""
+あなたは優秀なナレーション台本ライターです。
+
+【重要な指示】
+1. 添付されたPDFの各ページを注意深く読み取ってください
+2. テキスト、図表、画像、グラフなど全ての要素を認識してください
+3. 各ページの内容を正確に理解した上で、ナレーション台本を作成してください
+
+【台本作成ルール】
 {program_style["script_prompt"]}
 
-以下のPDFの各ページについてナレーション台本を作成してください。
-各ページ30秒〜1分程度で読める長さにしてください。
+【形式要件】
+- 各ページ30秒〜1分程度で読める長さにしてください
+- PDFの実際の内容に基づいて、具体的で情報豊富なナレーションを作成してください
+- 「ページXの内容です」のような曖昧な表現は禁止です
+- 必ずPDFに書かれている具体的な情報、データ、説明を盛り込んでください
 
 {format_instruction}
 
 対象ページ番号: {page_numbers}
+
+PDFの内容を詳細に分析し、視聴者にとって価値のあるナレーション台本を作成してください。
 """
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-3-flash-preview",
         contents=[
             types.Content(
                 parts=[
