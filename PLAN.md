@@ -28,7 +28,7 @@
 ┌──────────────────────────▼──────────────────────────────────┐
 │                   Output & Storage                           │
 ├─────────────────────────────────────────────────────────────┤
-│        MP4 Video (1920x1080) → Hugging Face Dataset         │
+│        MP4 Video (1280x720) → Hugging Face Dataset          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,15 +52,23 @@
 - [x] 動画結合高速化（ffmpeg concat、10倍高速）
 - [x] 台本生成モデル強化（gemini-3-flash-preview）
 - [x] 台本生成プロンプト強化（PDF認識・具体性要求）
+- [x] 詳細ログ追加（全パイプライン対応）
 - [x] PDF処理パイプライン動作確認
 - [x] TTS音声生成確認
 - [x] 動画生成・結合確認
-- [ ] Gemini API連携確認（スクリプト生成品質）← テスト中
+- [x] HD画質対応（1280×720、エンコード高速化）
+- [x] 台本ボリューム最適化（25〜35秒/ページ）
+- [x] TTS早口・正確発音指示追加
+- [x] 構造化出力実装（Pydanticスキーマ）
+- [x] チャンク位置認識（分割一貫性向上）
+- [x] TTSレートリミット対策（リトライ機構）
+- [ ] 構造化出力の動作確認 ← テスト中
+- [ ] リトライ機構の動作確認 ← テスト中
 - [ ] Hugging Face Dataset連携確認
 - [ ] 各プログラムスタイルの動作確認
 
 ### Phase 2: 安定性向上 📋 計画中
-- [ ] APIコールのリトライ機構
+- [x] APIコールのリトライ機構 ← Phase 1で実装済み
 - [ ] エラーハンドリングの強化
 - [ ] 処理の中断・再開機能
 - [ ] 一時ファイルのクリーンアップ改善
@@ -92,12 +100,13 @@
 | カテゴリ | 技術 | 用途 |
 |---------|------|------|
 | UI | Gradio 5.9.1 | Webインターフェース |
-| AI（スクリプト） | Gemini 3 Flash Preview | ナレーション台本生成 |
-| AI（音声） | Gemini 2.5 Flash TTS | テキスト読み上げ |
+| AI（スクリプト） | Gemini 3 Flash Preview | ナレーション台本生成（構造化出力） |
+| AI（音声） | Gemini 2.5 Flash TTS | テキスト読み上げ（リトライ対応） |
 | PDF処理 | PyMuPDF, pdf2image | PDF操作・画像変換 |
 | 画像処理 | Pillow | リサイズ・加工 |
 | 音声処理 | pydub | 速度調整・無音挿入 |
 | 動画生成 | moviepy, ffmpeg | MP4生成・結合 |
+| スキーマ | Pydantic | 構造化出力定義 |
 | ストレージ | Hugging Face Hub | クラウド保存 |
 | CI/CD | GitHub Actions | HF Space自動同期 |
 
@@ -107,9 +116,10 @@
 
 1. **モジュラー設計**: 各処理段階を独立した関数として実装
 2. **プログレス可視化**: ユーザーに処理状況を常に表示
-3. **エラー耐性**: 失敗時も可能な限り処理を継続
+3. **エラー耐性**: 失敗時も可能な限り処理を継続（リトライ機構）
 4. **柔軟性**: 設定値の変更で動作をカスタマイズ可能
 5. **日本語優先**: UI・ナレーションは日本語を主言語とする
+6. **構造化出力**: 台本生成の確実性をスキーマで保証
 
 ---
 
@@ -121,7 +131,7 @@ AUDIO_SPEED = 1.2            # 再生速度
 SILENCE_BEFORE = 1000        # 前無音（ms）
 SILENCE_AFTER = 500          # 後無音（ms）
 OUTPUT_FPS = 24              # 動画フレームレート
-OUTPUT_RESOLUTION = (1920, 1080)  # 動画解像度
+OUTPUT_RESOLUTION = (1280, 720)  # 動画解像度（HD画質）
 ```
 
 ---
@@ -136,6 +146,34 @@ OUTPUT_RESOLUTION = (1920, 1080)  # 動画解像度
 | 1人ニュース風 | 1人 | フォーマルなニュースキャスター |
 | 1人講義風 | 1人 | 教授による学術的解説 |
 | 2人インタビュー風 | 2人 | 専門家へのQ&A形式 |
+
+---
+
+## 構造化出力スキーマ
+
+### 1人モード
+```python
+class PageScriptSingle(BaseModel):
+    page_number: int
+    narration: str
+
+class ScriptResponseSingle(BaseModel):
+    pages: List[PageScriptSingle]
+```
+
+### 2人モード
+```python
+class DialogueLine(BaseModel):
+    speaker: str
+    text: str
+
+class PageScriptMulti(BaseModel):
+    page_number: int
+    dialogue: List[DialogueLine]
+
+class ScriptResponseMulti(BaseModel):
+    pages: List[PageScriptMulti]
+```
 
 ---
 

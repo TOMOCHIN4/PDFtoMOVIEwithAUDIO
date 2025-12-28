@@ -199,7 +199,7 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 出力形式: 以下のJSON構造で出力してください。
 - pages: 各ページのナレーションを含むリスト
   - page_number: ページ番号（{page_numbers[0]}から{page_numbers[-1]}）
-  - narration: そのページのナレーション全文（15〜30秒で読める長さ）
+  - narration: そのページのナレーション全文（25〜35秒で読める長さ）
 """
     else:
         response_schema = ScriptResponseMulti
@@ -252,7 +252,7 @@ def generate_narration_script(pdf_chunk_path, page_numbers, program_style, api_k
 {program_style["script_prompt"]}
 
 【形式要件】
-- 各ページ15〜30秒程度で読める長さにしてください（簡潔に）
+- 各ページ25〜35秒程度で読める長さにしてください（簡潔に）
 - PDFの実際の内容に基づいて、具体的で情報豊富なナレーションを作成してください
 - 「ページXの内容です」のような曖昧な表現は禁止です
 - 必ずPDFに書かれている具体的な情報、データ、説明を盛り込んでください
